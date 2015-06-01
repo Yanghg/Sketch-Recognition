@@ -465,6 +465,24 @@ class StrokeLabeler:
             print "numStrokes is", len(strokes), "numLabels is", len(labels)
         return strokes, labels
 
+    def confusion(trueLabels, classifications):
+        tp, tn, fp, fn = 0, 0, 0, 0
+        for i in range(len(trueLabels)):
+            if trueLabels[i] == classifications[i]:
+                if classifications[i] == 'drawing':
+                    tp += 1
+                else:
+                    tn += 1
+            else:
+                if classifications[i] == 'drawing':
+                    fp += 1
+                else:
+                    fn += 1
+        return {'drawing':{'drawing':tp,'text':fn},'text':{'drawing':fp,'text':tn}}
+
+
+
+
 class Stroke:
     ''' A class to represent a stroke (series of xyt points).
         This class also has various functions for computing stroke features. '''
