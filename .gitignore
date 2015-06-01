@@ -1,3 +1,4 @@
-
 *.pyc
 trainingFiles/
+out.xml
+

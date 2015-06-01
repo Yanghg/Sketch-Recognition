@@ -129,8 +129,56 @@ class HMM:
         ''' Find the most likely labels for the sequence of data
             This is an implementation of the Viterbi algorithm  '''
         # You will implement this function
-        print "label function not yet implemented"
-        return None
+        #list of 'text' and 'drawing'
+        labelList = []
+        transitionList = []
+        prevPartialProb = {}
+        finalState = ''
+        # now have a sequence of length [{'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 0}]
+        #self.priors {'text': 0.5272727272727272, 'drawing': 0.4727272727272727}
+        #self.transitions {'text': {'text': 0.8217821782178217, 'drawing': 0.1782178217821782}, 'drawing': {'text': 0.10454908220271349, 'drawing': 0.8954509177972865}}
+        #self.emissions {'text': {'length': [0.6366083445491252, 0.3633916554508748]}, 'drawing': {'length': [0.3166144200626959, 0.6833855799373041]}}
+
+        for fIndex in range(len(data)):
+            feature = data[fIndex]
+            tempPartialProb = {}
+            tempPrevState = {} 
+            for prior in self.priors:
+                emissionProb = 1.0
+                for featureKey in feature:
+                    emissionProb *= self.emissions[prior][feature[featureKey]]
+                # 1st state calculation 
+                if fIndex == 0:
+                    tempPartialProb[prior] = self.priors[prior] * emissionProb
+                else:
+                    tempPartialProb[prior] = 0;
+                    for prevState in self.transitions:
+                        tempProb = prevPartialProb[prevState] * self.transitions[prevState][prior] * emissionProb
+                        if tempProb > tempPartialProb[prior]:
+                            tempPartialProb[prior] = tempProb
+                            tempPrevState[prior] = prevState
+
+            #update previous state partial prob
+            for probKey in tempPartialProb:
+                prevPartialProb[probKey] = tempPartialProb[probKey]
+            if fIndex == len(data) - 1:
+                tempFinalProb = 0;
+                for key in prevPartialProb:
+                    if prevPartialProb[key] > tempFinalProb:
+                        tempFinalProb = prevPartialProb[key]
+                        finalState = key
+            #update transition list
+            transitionList.append(tempPrevState)
+
+        labelList.append(finalState)
+        #fill labelList from the final state 
+        for prev in transitionList:
+            labelList.insert(0,prev[finalState])
+            finalState = prev[finalState]
+
+        print labelList
+        #return a list of labels
+        return labelList
     
     def getEmissionProb( self, state, features ):
         ''' Get P(features|state).
@@ -234,10 +282,13 @@ class StrokeLabeler:
             allStrokes.append(strokes)
             allLabels.append(labels)
         allObservations = [self.featurefy(s) for s in allStrokes]
+        print "haha"
+        print labels
         self.hmm.train(allObservations, allLabels)
 
     def trainHMMDir( self, trainingDir ):
         ''' train the HMM on all the files in a training directory '''
+
         for fFileObj in os.walk(trainingDir):
             lFileList = fFileObj[2]
             break
@@ -274,6 +325,7 @@ class StrokeLabeler:
             print "HMM must be trained first"
             return []
         strokeFeatures = self.featurefy(strokes)
+        print strokeFeatures
         return self.hmm.label(strokeFeatures)
 
     def saveFile( self, strokes, labels, originalFile, outFile ):
