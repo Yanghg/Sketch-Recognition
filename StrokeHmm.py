@@ -518,7 +518,7 @@ class StrokeLabeler:
             print "numStrokes is", len(strokes), "numLabels is", len(labels)
         return strokes, labels
 
-    def confusion(trueLabels, classifications):
+    def confusion(self,trueLabels, classifications):
         tp, tn, fp, fn = 0, 0, 0, 0
         for i in range(len(trueLabels)):
             if trueLabels[i] == classifications[i]:
