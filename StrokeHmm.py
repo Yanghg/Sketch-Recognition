@@ -181,8 +181,8 @@ class HMM:
         for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
-        print prevPartialProb
-        print labelList
+        print "final state partial probability: " + str(prevPartialProb)
+        print "label sequence generated: " + str(labelList)
         #return a list of labels
         return labelList
     
