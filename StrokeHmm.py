@@ -168,11 +168,12 @@ class HMM:
                         tempFinalProb = prevPartialProb[key]
                         finalState = key
             #update transition list
-            transitionList.append(tempPrevState)
+            if fIndex != 0:
+                transitionList.append(tempPrevState)
 
         labelList.append(finalState)
         #fill labelList from the final state 
-        for prev in transitionList:
+        for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
 
