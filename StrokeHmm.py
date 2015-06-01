@@ -3,6 +3,7 @@ import copy
 import guid
 import math
 import os
+import operator
 
 # A couple contants
 CONTINUOUS = 0
@@ -159,20 +160,24 @@ class HMM:
                             tempPrevState[prior] = prevState
 
             #update previous state partial prob
-            for probKey in tempPartialProb:
-                prevPartialProb[probKey] = tempPartialProb[probKey]
-            if fIndex == len(data) - 1:
-                tempFinalProb = 0;
-                for key in prevPartialProb:
-                    if prevPartialProb[key] > tempFinalProb:
-                        tempFinalProb = prevPartialProb[key]
-                        finalState = key
+            # for probKey in tempPartialProb:
+            #     prevPartialProb[probKey] = tempPartialProb[probKey]
+            prevPartialProb = tempPartialProb
+            # if fIndex == len(data) - 1:
+            #     tempFinalProb = 0;
+            #     for key in prevPartialProb:
+            #         if prevPartialProb[key] > tempFinalProb:
+            #             tempFinalProb = prevPartialProb[key]
+            #             finalState = key
             #update transition list
             if fIndex != 0:
                 transitionList.append(tempPrevState)
+        finalState = max(prevPartialProb.iteritems(), key=operator.itemgetter(1))[0]
 
         labelList.append(finalState)
         #fill labelList from the final state 
+        print 'test'
+        print transitionList
         for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
