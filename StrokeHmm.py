@@ -145,16 +145,16 @@ class HMM:
             tempPartialProb = {}
             tempPrevState = {} 
             for prior in self.priors:
-                emissionProb = 1.0
+                emissionProb = 0.0
                 for featureKey in feature:
-                    emissionProb *= self.emissions[prior][featureKey][feature[featureKey]]
+                    emissionProb += math.log(self.emissions[prior][featureKey][feature[featureKey]],2)
                 # 1st state calculation 
                 if fIndex == 0:
-                    tempPartialProb[prior] = self.priors[prior] * emissionProb
+                    tempPartialProb[prior] = math.log(self.priors[prior],2) + emissionProb
                 else:
-                    tempPartialProb[prior] = 0;
+                    tempPartialProb[prior] = float('-inf');
                     for prevState in self.transitions:
-                        tempProb = prevPartialProb[prevState] * self.transitions[prevState][prior] * emissionProb
+                        tempProb = prevPartialProb[prevState] + math.log(self.transitions[prevState][prior],2) + emissionProb
                         if tempProb > tempPartialProb[prior]:
                             tempPartialProb[prior] = tempProb
                             tempPrevState[prior] = prevState
@@ -181,7 +181,7 @@ class HMM:
         for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
-
+        print prevPartialProb
         print labelList
         #return a list of labels
         return labelList
