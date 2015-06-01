@@ -146,7 +146,7 @@ class HMM:
             for prior in self.priors:
                 emissionProb = 1.0
                 for featureKey in feature:
-                    emissionProb *= self.emissions[prior][feature[featureKey]]
+                    emissionProb *= self.emissions[prior][featureKey][feature[featureKey]]
                 # 1st state calculation 
                 if fIndex == 0:
                     tempPartialProb[prior] = self.priors[prior] * emissionProb
