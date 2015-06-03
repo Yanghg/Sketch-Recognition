@@ -256,6 +256,11 @@ class StrokeLabeler:
             # to use.  This is an important process and can be tricky.  Try
             # to use a principled approach (i.e., look at the data) rather
             # than just guessing.
+            '''
+            With this two line of codes, we import all features we want to use from the self.featureNames list
+            Then we use the already-calculated values to classify continous features, which also means that we don't have any discrete values to give to HMM model
+            The calculation of those classification values are in 'generateFeatureIntervals' function
+            '''
             for featureName,featureInterval in self.featureIntervals.items():
                 d[featureName] = 1 if s.featureValues[featureName] > featureInterval else 0
                 
@@ -270,12 +275,6 @@ class StrokeLabeler:
             
         return ret
     
-    def drange(start, stop, step):
-        r = start
-        while r < stop:
-            yield r
-            r += step
-
     def generateFeatureIntervals(self,allStrokes,allLabels):
         result = {}
         for featureName in self.featureNames:
@@ -290,8 +289,7 @@ class StrokeLabeler:
             drawingList = result[featureName]['drawing']
             averText = 0 if len(textList) == 0 else float(sum(textList))/len(textList)
             averDrawing = 0 if len(drawingList) == 0 else float(sum(drawingList))/len(drawingList)
-            minEntropy = 2
-            bestDPoint = averText
+            target = (averText,2)
             step = float(averDrawing-averText)/10
             dPoint = averText
             for i in range(1,10): 
@@ -299,10 +297,9 @@ class StrokeLabeler:
                 list1 = ['drawing' for v in drawingList if v>dPoint] + ['text' for v in textList if v>dPoint]
                 list2 = ['drawing' for v in drawingList if v<=dPoint] + ['text' for v in textList if v<=dPoint]
                 entropy = self.calculateEntropy(list1,list2)
-                if entropy<minEntropy:
-                    minEntropy = entropy
-                    bestDPoint = dPoint
-            self.featureIntervals[featureName] = bestDPoint
+                if entropy<target[1]:
+                    target = (dPoint,entropy)
+            self.featureIntervals[featureName] = target[0]
 
 
 
