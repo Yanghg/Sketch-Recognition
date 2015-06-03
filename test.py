@@ -1,4 +1,4 @@
-execfile("StrokeHMM.py")
+execfile("StrokeHMMbasic.py")
 states = ['Sunny','Cloudy','Rainy']
 features = ['Evidence']
 contOrDisc={'Evidence':1}

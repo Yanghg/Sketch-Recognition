@@ -145,12 +145,11 @@ class HMM:
             tempPartialProb = {}
             tempPrevState = {} 
             for prior in self.priors:
-                emissionProb = 0.0
-                for featureKey in feature:
-                    emissionProb += math.log(self.emissions[prior][featureKey][feature[featureKey]],2)
+                emissionProb = math.log(self.getEmissionProb(prior, feature),2)
                 # 1st state calculation 
                 if fIndex == 0:
                     tempPartialProb[prior] = math.log(self.priors[prior],2) + emissionProb
+                # other state calculation
                 else:
                     tempPartialProb[prior] = float('-inf');
                     for prevState in self.transitions:
@@ -160,15 +159,7 @@ class HMM:
                             tempPrevState[prior] = prevState
 
             #update previous state partial prob
-            # for probKey in tempPartialProb:
-            #     prevPartialProb[probKey] = tempPartialProb[probKey]
             prevPartialProb = tempPartialProb
-            # if fIndex == len(data) - 1:
-            #     tempFinalProb = 0;
-            #     for key in prevPartialProb:
-            #         if prevPartialProb[key] > tempFinalProb:
-            #             tempFinalProb = prevPartialProb[key]
-            #             finalState = key
             #update transition list
             if fIndex != 0:
                 transitionList.append(tempPrevState)
@@ -232,7 +223,7 @@ class StrokeLabeler:
         # numFVals is a dictionary specifying the number of legal values for
         #    each discrete feature
         self.featureNames = ['length']
-        self.contOrDisc = {'length': DISCRETE}
+        self.contOrDisc = {'length': DISCRETE} #CONTINUOUS
         self.numFVals = { 'length': 2}
 
     def featurefy( self, strokes ):
@@ -261,11 +252,12 @@ class StrokeLabeler:
             # to use a principled approach (i.e., look at the data) rather
             # than just guessing.
             l = s.length()
+            
             if l < 300:
                 d['length'] = 0
             else:
                 d['length'] = 1
-
+            
             # We can add more features here just by adding them to the dictionary
             # d as we did with length.  Remember that when you add features,
             # you also need to add them to the three member data structures
@@ -288,8 +280,7 @@ class StrokeLabeler:
             allStrokes.append(strokes)
             allLabels.append(labels)
         allObservations = [self.featurefy(s) for s in allStrokes]
-        print "haha"
-        print labels
+        print "original labels:" + str(labels)
         self.hmm.train(allObservations, allLabels)
 
     def trainHMMDir( self, trainingDir ):
