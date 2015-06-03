@@ -223,7 +223,7 @@ class StrokeLabeler:
         #    name to whether it is continuous or discrete
         # numFVals is a dictionary specifying the number of legal values for
         #    each discrete feature
-        self.featureNames = ['length']
+        self.featureNames = ['length','sumOfCurvature']
         self.contOrDisc = {}
         self.numFVals = {}
         self.featureIntervals = {}
@@ -256,7 +256,7 @@ class StrokeLabeler:
             # to use.  This is an important process and can be tricky.  Try
             # to use a principled approach (i.e., look at the data) rather
             # than just guessing.
-            for featureName,featureInterval in self.featureIntervals:
+            for featureName,featureInterval in self.featureIntervals.items():
                 d[featureName] = 1 if s.featureValues[featureName] > featureInterval else 0
                 
             # We can add more features here just by adding them to the dictionary
@@ -270,6 +270,12 @@ class StrokeLabeler:
             
         return ret
     
+    def drange(start, stop, step):
+        r = start
+        while r < stop:
+            yield r
+            r += step
+
     def generateFeatureIntervals(self,allStrokes,allLabels):
         result = {}
         for featureName in self.featureNames:
@@ -278,14 +284,18 @@ class StrokeLabeler:
             for j in range(len(allStrokes[i])):
                 for featureName in self.featureNames:
                     result[featureName][allLabels[i][j]].append(allStrokes[i][j].featureValues[featureName])
+        self.result =  result
         for featureName in self.featureNames:
             textList = result[featureName]['text']
             drawingList = result[featureName]['drawing']
             averText = 0 if len(textList) == 0 else float(sum(textList))/len(textList)
             averDrawing = 0 if len(drawingList) == 0 else float(sum(drawingList))/len(drawingList)
-            minEntropy = 1
+            minEntropy = 2
             bestDPoint = averText
-            for dPoint in range(averText+(averDrawing-averText)/10,averDrawing,(averDrawing-averText)/10):
+            step = float(averDrawing-averText)/10
+            dPoint = averText
+            for i in range(1,10): 
+                dPoint += step
                 list1 = ['drawing' for v in drawingList if v>dPoint] + ['text' for v in textList if v>dPoint]
                 list2 = ['drawing' for v in drawingList if v<=dPoint] + ['text' for v in textList if v<=dPoint]
                 entropy = self.calculateEntropy(list1,list2)
@@ -299,19 +309,22 @@ class StrokeLabeler:
 
     def calculateEntropy(self, list1, list2):
         prob1 = float(len(list1))/(len(list1) + len(list2))
-        prob2 = float(len(list2))/(len(list1) + len(list2))          
+        prob2 = float(len(list2))/(len(list1) + len(list2))  
+        numText1 = 0
+        numText2 = 0        
         for l1 in list1:
-            if l1 == 'text'
-            numText1 += 1
+            if l1 == 'text':
+                numText1 += 1
         probText1 = float(numText1)/len(list1)
         probDrawing1 = 1 - probText1
         for l2 in list2:
-            if l2 == 'text'
-            numText2 += 1
+            if l2 == 'text':
+                numText2 += 1
         probText2 = float(numText2)/len(list2)
         probDrawing2 = 1 - probText2
-        conditionEntropy = - prob1 * (probText1*math.log(probText1,2) + probDrawing1*math.log(probDrawing1,2)) - prob2 * (probText2*math.log(probText2,2) + probDrawing2*math.log(probDrawing2,2)) 
-        return conditionEntropy
+        list1Entropy = 0 if probText1 * probDrawing1 == 0 else -probText1*math.log(probText1,2) - probDrawing1*math.log(probDrawing1,2)
+        list2Entropy = 0 if probText2 * probDrawing2 == 0 else -probText2*math.log(probText2,2) - probDrawing2*math.log(probDrawing2,2)
+        conditionEntropy = prob1 * list1Entropy + prob2 * list2Entropy
 
     def trainHMM( self, trainingFiles ):
         ''' Train the HMM '''
@@ -504,6 +517,8 @@ class StrokeLabeler:
                     points.append((x, y, time))
                     last = (x, y, time)
         ret.setPoints(points)
+        ret.featureValues['length'] = ret.length()
+        ret.featureValues['sumOfCurvature'] = ret.sumOfCurvature()
         return ret
                 
 
@@ -584,7 +599,6 @@ class Stroke:
         self.strokeId = strokeId
         self.substrokeIds = []   # Keep around the substroke ids for writing back to file
         self.featureValues = {}
-        self.featureValues['legnth'] = self.length()
         
     def __repr__(self):
         ''' Return a string representation of the stroke '''
