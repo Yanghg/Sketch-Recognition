@@ -225,6 +225,7 @@ class StrokeLabeler:
         self.featureNames = ['length']
         self.contOrDisc = {}
         self.numFVals = {}
+        self.featureIntervals = {}
         for featureName in self.featureNames:
             self.contOrDisc[featureName] = DISCRETE
             self.numFVals[featureName] = 2
@@ -256,12 +257,14 @@ class StrokeLabeler:
             # to use a principled approach (i.e., look at the data) rather
             # than just guessing.
             for featureName,featureInterval in featureIntervals:
-            l = s.length()
-            
-            if l < 300:
-                d['length'] = 0
-            else:
-                d['length'] = 1
+                if featureName = 'length':         
+                    v = s.length()
+                else:
+                    print featureName + " does not exist!"
+                if v < featureInterval:
+                    d[featureName] = 0
+                else:
+                    d[featureName] = 1
             
             # We can add more features here just by adding them to the dictionary
             # d as we did with length.  Remember that when you add features,
@@ -274,6 +277,27 @@ class StrokeLabeler:
             
         return ret
     
+    def generateFeatureIntervals(self,allStrokes):
+        for allStroke
+
+    def calculateEntropy(self, dataSet):
+        num = len(dataSet)
+        freq={}
+        entropy = 0.0
+
+        for target in dataSet:
+            current = target[-1]
+         
+            if not freq.has_key(current):
+                freq[current] = 0       
+            freq[current] += 1
+      
+        for key in freq:
+            prob = float(freq[key])/num
+            if prob != 0:                   
+                entropy -= prob*math.log(prob,2)
+        return entropy
+
     def trainHMM( self, trainingFiles ):
         ''' Train the HMM '''
         self.hmm = HMM( self.labels, self.featureNames, self.contOrDisc, self.numFVals )
@@ -284,7 +308,8 @@ class StrokeLabeler:
             strokes, labels = self.loadLabeledFile( f )
             allStrokes.append(strokes)
             allLabels.append(labels)
-        allObservations = [self.featurefy(s,featureIntervals) for s in allStrokes]
+        self.generateFeatureIntervals(allStrokes)
+        allObservations = [self.featurefy(s,self.featureIntervals) for s in allStrokes]
         print "original labels:" + str(labels)
         self.hmm.train(allObservations, allLabels)
 
@@ -326,7 +351,7 @@ class StrokeLabeler:
         if self.hmm == None:
             print "HMM must be trained first"
             return []
-        strokeFeatures = self.featurefy(strokes,featureIntervals)
+        strokeFeatures = self.featurefy(strokes,self.featureIntervals)
         print strokeFeatures
         return self.hmm.label(strokeFeatures)
 
