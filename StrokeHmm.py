@@ -231,7 +231,7 @@ class StrokeLabeler:
             self.numFVals[featureName] = 2
         
 
-    def featurefy( self, strokes, featureIntervals):
+    def featurefy( self, strokes):
         ''' Converts the list of strokes into a list of feature dictionaries
             suitable for the HMM
             The names of features used here have to match the names
@@ -256,15 +256,9 @@ class StrokeLabeler:
             # to use.  This is an important process and can be tricky.  Try
             # to use a principled approach (i.e., look at the data) rather
             # than just guessing.
-            for featureName,featureInterval in featureIntervals:
-                if featureName = 'length':         
-                    v = s.length()
-                else:
-                    print featureName + " does not exist!"
-                if v < featureInterval:
-                    d[featureName] = 0
-                else:
-                    d[featureName] = 1
+            for featureName,featureInterval in self.featureIntervals:
+                d[featureName] = 1 if s.featureValues[featureName] > featureInterval else 0
+                
             
             # We can add more features here just by adding them to the dictionary
             # d as we did with length.  Remember that when you add features,
@@ -277,8 +271,32 @@ class StrokeLabeler:
             
         return ret
     
-    def generateFeatureIntervals(self,allStrokes):
-        for allStroke
+    def generateFeatureIntervals(self,allStrokes,allLabels):
+        result = {}
+        for featureName in self.featureNames:
+            result[featureName] = {'text':[],'drawing':[]}
+        for i in range(len(allStrokes)):
+            for j in range(len(allStrokes[i])):
+                for featureName in self.featureNames:
+                    result[featureName][allLabels[i][j]].append(allStrokes[i][j].featureValues[featureName])
+        for featureName in self.featureNames:
+            textList = result[featureName]['text']
+            drawingList = result[featureName]['drawing']
+            averText = 0 if len(textList) == 0 else float(sum(textList))/len(textList)
+            averDrawing = 0 if len(drawingList) == 0 else float(sum(drawingList))/len(drawingList)
+            minEntropy = 1
+            bestDPoint = averText
+            for dPoint in range(averText+(averDrawing-averText)/10,averDrawing,(averDrawing-averText)/10):
+                list1 = ['drawing' for v in drawingList if v>dPoint] + ['text' for v in textList if v>dPoint]
+                list2 = ['drawing' for v in drawingList if v<=dPoint] + ['text' for v in textList if v<=dPoint]
+                entropy = self.calculateEntropy(list1,list2)
+                if entropy<minEntropy:
+                    minEntropy = entropy
+                    bestDPoint = dPoint
+            self.featureIntervals[featureName] = bestDPoint
+
+
+
 
     def calculateEntropy(self, dataSet):
         num = len(dataSet)
@@ -308,8 +326,8 @@ class StrokeLabeler:
             strokes, labels = self.loadLabeledFile( f )
             allStrokes.append(strokes)
             allLabels.append(labels)
-        self.generateFeatureIntervals(allStrokes)
-        allObservations = [self.featurefy(s,self.featureIntervals) for s in allStrokes]
+        self.generateFeatureIntervals(allStrokes,allLabels)
+        allObservations = [self.featurefy(s) for s in allStrokes]
         print "original labels:" + str(labels)
         self.hmm.train(allObservations, allLabels)
 
@@ -351,7 +369,7 @@ class StrokeLabeler:
         if self.hmm == None:
             print "HMM must be trained first"
             return []
-        strokeFeatures = self.featurefy(strokes,self.featureIntervals)
+        strokeFeatures = self.featurefy(strokes)
         print strokeFeatures
         return self.hmm.label(strokeFeatures)
 
@@ -568,6 +586,8 @@ class Stroke:
     def __init__(self, strokeId):
         self.strokeId = strokeId
         self.substrokeIds = []   # Keep around the substroke ids for writing back to file
+        self.featureValues = {}
+        self.featureValues['legnth'] = self.length()
         
     def __repr__(self):
         ''' Return a string representation of the stroke '''
