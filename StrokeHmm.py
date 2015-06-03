@@ -91,6 +91,7 @@ class HMM:
             self.emissions[s] = {}
             featureVals[s] = {}
             for f in self.featureNames:
+                # there might be no instance in continuous case
                 featureVals[s][f] = []
 
         # Now gather the features for each state
@@ -230,7 +231,6 @@ class StrokeLabeler:
             self.contOrDisc[featureName] = DISCRETE
             self.numFVals[featureName] = 2
         
-
     def featurefy( self, strokes):
         ''' Converts the list of strokes into a list of feature dictionaries
             suitable for the HMM
@@ -242,7 +242,7 @@ class StrokeLabeler:
 
             # If we wanted to use length as a continuous feature, we
             # would simply use the following line to set its value
-            #d['length'] = s.length()
+            # d['length'] = s.length()
 
             # To use it as a discrete feature, we have to "bin" it, that is
             # we define ranges for "short" (<300 units) and "long" (>=300 units)
@@ -259,7 +259,6 @@ class StrokeLabeler:
             for featureName,featureInterval in self.featureIntervals:
                 d[featureName] = 1 if s.featureValues[featureName] > featureInterval else 0
                 
-            
             # We can add more features here just by adding them to the dictionary
             # d as we did with length.  Remember that when you add features,
             # you also need to add them to the three member data structures
@@ -298,23 +297,21 @@ class StrokeLabeler:
 
 
 
-    def calculateEntropy(self, dataSet):
-        num = len(dataSet)
-        freq={}
-        entropy = 0.0
-
-        for target in dataSet:
-            current = target[-1]
-         
-            if not freq.has_key(current):
-                freq[current] = 0       
-            freq[current] += 1
-      
-        for key in freq:
-            prob = float(freq[key])/num
-            if prob != 0:                   
-                entropy -= prob*math.log(prob,2)
-        return entropy
+    def calculateEntropy(self, list1, list2):
+        prob1 = float(len(list1))/(len(list1) + len(list2))
+        prob2 = float(len(list2))/(len(list1) + len(list2))          
+        for l1 in list1:
+            if l1 == 'text'
+            numText1 += 1
+        probText1 = float(numText1)/len(list1)
+        probDrawing1 = 1 - probText1
+        for l2 in list2:
+            if l2 == 'text'
+            numText2 += 1
+        probText2 = float(numText2)/len(list2)
+        probDrawing2 = 1 - probText2
+        conditionEntropy = - prob1 * (probText1*math.log(probText1,2) + probDrawing1*math.log(probDrawing1,2)) - prob2 * (probText2*math.log(probText2,2) + probDrawing2*math.log(probDrawing2,2)) 
+        return conditionEntropy
 
     def trainHMM( self, trainingFiles ):
         ''' Train the HMM '''
