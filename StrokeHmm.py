@@ -223,10 +223,14 @@ class StrokeLabeler:
         # numFVals is a dictionary specifying the number of legal values for
         #    each discrete feature
         self.featureNames = ['length']
-        self.contOrDisc = {'length': DISCRETE} #CONTINUOUS
-        self.numFVals = { 'length': 2}
+        self.contOrDisc = {}
+        self.numFVals = {}
+        for featureName in self.featureNames:
+            self.contOrDisc[featureName] = DISCRETE
+            self.numFVals[featureName] = 2
+        
 
-    def featurefy( self, strokes ):
+    def featurefy( self, strokes, featureIntervals):
         ''' Converts the list of strokes into a list of feature dictionaries
             suitable for the HMM
             The names of features used here have to match the names
@@ -251,6 +255,7 @@ class StrokeLabeler:
             # to use.  This is an important process and can be tricky.  Try
             # to use a principled approach (i.e., look at the data) rather
             # than just guessing.
+            for featureName,featureInterval in featureIntervals:
             l = s.length()
             
             if l < 300:
@@ -279,7 +284,7 @@ class StrokeLabeler:
             strokes, labels = self.loadLabeledFile( f )
             allStrokes.append(strokes)
             allLabels.append(labels)
-        allObservations = [self.featurefy(s) for s in allStrokes]
+        allObservations = [self.featurefy(s,featureIntervals) for s in allStrokes]
         print "original labels:" + str(labels)
         self.hmm.train(allObservations, allLabels)
 
@@ -321,7 +326,7 @@ class StrokeLabeler:
         if self.hmm == None:
             print "HMM must be trained first"
             return []
-        strokeFeatures = self.featurefy(strokes)
+        strokeFeatures = self.featurefy(strokes,featureIntervals)
         print strokeFeatures
         return self.hmm.label(strokeFeatures)
 
