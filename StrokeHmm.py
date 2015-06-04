@@ -223,7 +223,7 @@ class StrokeLabeler:
         #    name to whether it is continuous or discrete
         # numFVals is a dictionary specifying the number of legal values for
         #    each discrete feature
-        self.featureNames = ['length','ratioOfWidthHeight','toSide']
+        self.featureNames = ['length','sumOfCurvature','ratioOfWidthHeight','toSide','timeDuration']
         self.contOrDisc = {}
         self.numFVals = {}
         self.featureIntervals = {}
@@ -275,7 +275,7 @@ class StrokeLabeler:
             
         return ret
     
-    def generateFeatureIntervals(self,allStrokes,allLabels):
+    def generateFeatureIntervals(self,allStrokes,allLabels,intervalNums = 10):
         result = {}
         for featureName in self.featureNames:
             result[featureName] = {'text':[],'drawing':[]}
@@ -290,9 +290,9 @@ class StrokeLabeler:
             averText = 0 if len(textList) == 0 else float(sum(textList))/len(textList)
             averDrawing = 0 if len(drawingList) == 0 else float(sum(drawingList))/len(drawingList)
             target = (averText,2)
-            step = float(averDrawing-averText)/10
+            step = float(averDrawing-averText)/intervalNums
             dPoint = averText
-            for i in range(1,10): 
+            for i in range(1,intervalNums): 
                 dPoint += step
                 list1 = ['drawing' for v in drawingList if v>dPoint] + ['text' for v in textList if v>dPoint]
                 list2 = ['drawing' for v in drawingList if v<=dPoint] + ['text' for v in textList if v<=dPoint]
@@ -519,6 +519,7 @@ class StrokeLabeler:
         ret.featureValues['length'] = ret.length()
         ret.featureValues['sumOfCurvature'] = ret.sumOfCurvature()
         ret.featureValues['ratioOfWidthHeight'] = ret.ratioOfWidthHeight()
+        ret.featureValues['timeDuration'] = ret.timeDuration()
         return ret
                 
 
@@ -579,21 +580,12 @@ class StrokeLabeler:
         return strokes, labels
 
     def confusion(self,trueLabels, classifications):
-        tp, tn, fp, fn = 0, 0, 0, 0
+        result = {'drawing':{'drawing':0,'text':0},'text':{'drawing':0,'text':0}}
         for i in range(len(trueLabels)):
-            if trueLabels[i] == classifications[i]:
-                if classifications[i] == 'drawing':
-                    tp += 1
-                else:
-                    tn += 1
-            else:
-                if classifications[i] == 'drawing':
-                    fp += 1
-                else:
-                    fn += 1
-        print "confusion table: " + str({'drawing':{'drawing':tp,'text':fn},'text':{'drawing':fp,'text':tn}})
-        print "accuracy: " + str(float(tp+tn)/(tp+fp+tn+fn))
-        return {'drawing':{'drawing':tp,'text':fn},'text':{'drawing':fp,'text':tn}}
+            result[trueLabels[i]][classifications[i]] += 1    
+        print "confusion table: " + str(result)
+        print "accuracy: " + str(float(result['drawing']['drawing']+result['text']['text'])/(result['drawing']['drawing']+result['text']['text']+result['text']['drawing']+result['drawing']['text']))
+        return result
 
     def validateAll(self):
         self.classifications = self.labelStrokes(flatten(self.allStrokes))
@@ -644,6 +636,12 @@ class Stroke:
 
     def toSide(self,left,right):
         return min(right-self.maxX,self.minX-left)
+
+    def timeDuration(self):
+        minT,maxT = float('inf'),float('-inf')
+        for p in self.points:
+            minT,maxT = min(minT,float(p[2])),max(maxT,float(p[2]))
+        return maxT-minT
 
     def sumOfCurvature(self, func=lambda x: x, skip=1):
         ''' Return the normalized sum of curvature for a stroke.
