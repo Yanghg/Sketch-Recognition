@@ -1,5 +1,6 @@
 execfile("StrokeHMM.py")
 sl = StrokeLabeler()
 sl.trainHMMDir("trainingFiles/")
-#sl.trainHMM(["trainingFiles/0128_1.6.1.labeled.xml"])
-sl.labelFile( "trainingFiles/0128_1.6.1.labeled.xml", "out.xml")
+# sl.trainHMM(["trainingFiles/0128_1.6.1.labeled.xml"])
+# sl.labelFile( "trainingFiles/0128_1.6.1.labeled.xml", "out.xml")
+sl.validateAll()

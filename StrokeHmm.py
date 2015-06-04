@@ -4,6 +4,7 @@ import guid
 import math
 import os
 import operator
+from compiler.ast import flatten
 
 # A couple contants
 CONTINUOUS = 0
@@ -55,7 +56,7 @@ class HMM:
 
         self.priors = {}
         for s in self.states:
-            self.priors[s] = float(priorCounts[s])/len(trainingLabels)
+            self.priors[s] = max(1.0,float(priorCounts[s]))/len(trainingLabels)
         
 
     def trainTransitions( self, trainingData, trainingLabels ):
@@ -80,7 +81,7 @@ class HMM:
             self.transitions[s] = {}
             totForS = sum(transitionCounts[s].values())
             for s2 in transitionCounts[s].keys():
-                self.transitions[s][s2] = float(transitionCounts[s][s2])/float(totForS)
+                self.transitions[s][s2] = max(1.0,float(transitionCounts[s][s2]))/float(totForS)
 
 
     def trainEmissions( self, trainingData, trainingLabels ):
@@ -124,7 +125,7 @@ class HMM:
                         self.emissions[s][f][fval] += 1
                     # Now we have counts of each feature and we need to normalize
                     for i in range(len(self.emissions[s][f])):
-                        self.emissions[s][f][i] /= float(len(featureVals[s][f])+self.numVals[f])
+                        self.emissions[s][f][i] = max(1.0,self.emissions[s][f][i]) / float(len(featureVals[s][f])+self.numVals[f])
 
               
     def label( self, data ):
@@ -168,13 +169,12 @@ class HMM:
 
         labelList.append(finalState)
         #fill labelList from the final state 
-        print 'test'
-        print transitionList
+        # print transitionList
         for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
         print "final state partial probability: " + str(prevPartialProb)
-        print "label sequence generated: " + str(labelList)
+        # print "label sequence generated: " + str(labelList)
         #return a list of labels
         return labelList
     
@@ -223,7 +223,7 @@ class StrokeLabeler:
         #    name to whether it is continuous or discrete
         # numFVals is a dictionary specifying the number of legal values for
         #    each discrete feature
-        self.featureNames = ['length','sumOfCurvature']
+        self.featureNames = ['length','ratioOfWidthHeight','toSide']
         self.contOrDisc = {}
         self.numFVals = {}
         self.featureIntervals = {}
@@ -283,7 +283,7 @@ class StrokeLabeler:
             for j in range(len(allStrokes[i])):
                 for featureName in self.featureNames:
                     result[featureName][allLabels[i][j]].append(allStrokes[i][j].featureValues[featureName])
-        self.result =  result
+        # self.result =  result
         for featureName in self.featureNames:
             textList = result[featureName]['text']
             drawingList = result[featureName]['drawing']
@@ -333,6 +333,8 @@ class StrokeLabeler:
             strokes, labels = self.loadLabeledFile( f )
             allStrokes.append(strokes)
             allLabels.append(labels)
+        self.allStrokes = allStrokes
+        self.allLabels = allLabels
         self.generateFeatureIntervals(allStrokes,allLabels)
         allObservations = [self.featurefy(s) for s in allStrokes]
         print "original labels:" + str(labels)
@@ -377,7 +379,7 @@ class StrokeLabeler:
             print "HMM must be trained first"
             return []
         strokeFeatures = self.featurefy(strokes)
-        print strokeFeatures
+        # print strokeFeatures
         return self.hmm.label(strokeFeatures)
 
     def saveFile( self, strokes, labels, originalFile, outFile ):
@@ -516,6 +518,7 @@ class StrokeLabeler:
         ret.setPoints(points)
         ret.featureValues['length'] = ret.length()
         ret.featureValues['sumOfCurvature'] = ret.sumOfCurvature()
+        ret.featureValues['ratioOfWidthHeight'] = ret.ratioOfWidthHeight()
         return ret
                 
 
@@ -533,9 +536,11 @@ class StrokeLabeler:
 
         strokes = []
         substrokeIdDict = {}
+        left,right = float('inf'),float('-inf')
         for shape in allShapes:
             if shape.getAttribute("type") == "stroke":
                 stroke = self.buildStroke( shape, shapesDict, pointsDict )
+                left,right = min(stroke.minX,left),max(stroke.maxX,right)
                 strokes.append(self.buildStroke( shape, shapesDict, pointsDict ))
                 substrokeIdDict[stroke.strokeId] = stroke
             else:
@@ -545,6 +550,8 @@ class StrokeLabeler:
                        or child.getAttribute("type") != "substroke":
                         continue
                     substrokeIdDict[child.firstChild.data] = shape.getAttribute("type")
+        for stroke in strokes:
+            stroke.featureValues['toSide'] = stroke.toSide(left,right)
 
         # I THINK the strokes will be loaded in order, but make sure
         if not self.verifyStrokeOrder(strokes):
@@ -584,9 +591,13 @@ class StrokeLabeler:
                     fp += 1
                 else:
                     fn += 1
+        print "confusion table: " + str({'drawing':{'drawing':tp,'text':fn},'text':{'drawing':fp,'text':tn}})
+        print "accuracy: " + str(float(tp+tn)/(tp+fp+tn+fn))
         return {'drawing':{'drawing':tp,'text':fn},'text':{'drawing':fp,'text':tn}}
 
-
+    def validateAll(self):
+        self.classifications = self.labelStrokes(flatten(self.allStrokes))
+        self.confusion(flatten(self.allLabels),self.classifications)
 
 
 class Stroke:
@@ -623,7 +634,16 @@ class Stroke:
             prev = p
         return ret
 
+    def ratioOfWidthHeight(self):
+        '''this is the ratio of stroke boundary's width to height'''
+        self.minX,self.minY,self.maxX,self.maxY = float('inf'),float('inf'),float('-inf'),float('-inf')
+        for p in self.points:
+            self.minX,self.minY,self.maxX,self.maxY = min(self.minX,float(p[0])),min(self.minY,float(p[1])),max(self.maxX,float(p[0])),max(self.maxY,float(p[1]))
+        bWidth,bHeight = self.maxX-self.minX,self.maxY-self.minY
+        return 0 if bWidth*bHeight == 0 else min(bWidth/bHeight,bHeight/bWidth)
 
+    def toSide(self,left,right):
+        return min(right-self.maxX,self.minX-left)
 
     def sumOfCurvature(self, func=lambda x: x, skip=1):
         ''' Return the normalized sum of curvature for a stroke.
