@@ -461,10 +461,15 @@ class StrokeLabeler:
         shapesDict = self.buildDict(allShapes)
 
         strokes = []
+        left,right = float('inf'),float('-inf')
         for shape in allShapes:
             if shape.getAttribute("type") == "stroke":
+                stroke = self.buildStroke( shape, shapesDict, pointsDict )
+                left,right = min(stroke.minX,left),max(stroke.maxX,right)
                 strokes.append(self.buildStroke( shape, shapesDict, pointsDict ))
 
+        for stroke in strokes:
+            stroke.featureValues['toSide'] = stroke.toSide(left,right)
         # I THINK the strokes will be loaded in order, but make sure
         if not self.verifyStrokeOrder(strokes):
             print "WARNING: Strokes out of order"
@@ -550,7 +555,7 @@ class StrokeLabeler:
             if shape.getAttribute("type") == "stroke":
                 stroke = self.buildStroke( shape, shapesDict, pointsDict )
                 left,right = min(stroke.minX,left),max(stroke.maxX,right)
-                strokes.append(self.buildStroke( shape, shapesDict, pointsDict ))
+                strokes.append(stroke)
                 substrokeIdDict[stroke.strokeId] = stroke
             else:
                 # If it's a shape, then just store the label on the substrokes
