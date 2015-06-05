@@ -4,6 +4,7 @@ import guid
 import math
 import os
 import operator
+from compiler.ast import flatten
 
 # A couple contants
 CONTINUOUS = 0
@@ -168,7 +169,6 @@ class HMM:
         labelList.append(finalState)
         #fill labelList from the final state 
         print 'test'
-        print transitionList
         for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
@@ -279,8 +279,10 @@ class StrokeLabeler:
             strokes, labels = self.loadLabeledFile( f )
             allStrokes.append(strokes)
             allLabels.append(labels)
+        self.allStrokes = allStrokes
+        self.allLabels = allLabels
         allObservations = [self.featurefy(s) for s in allStrokes]
-        print "original labels:" + str(labels)
+        # print "original labels:" + str(labels)
         self.hmm.train(allObservations, allLabels)
 
     def trainHMMDir( self, trainingDir ):
@@ -310,10 +312,10 @@ class StrokeLabeler:
     def labelFile( self, strokeFile, outFile ):
         ''' Label the strokes in the file strokeFile and save the labels
             (with the strokes) in the outFile '''
-        print "Labeling file", strokeFile
+        # print "Labeling file", strokeFile
         strokes = self.loadStrokeFile( strokeFile )
         labels = self.labelStrokes( strokes )
-        print "Labeling done, saving file as", outFile
+        # print "Labeling done, saving file as", outFile
         self.saveFile( strokes, labels, strokeFile, outFile )
 
     def labelStrokes( self, strokes ):
@@ -322,7 +324,6 @@ class StrokeLabeler:
             print "HMM must be trained first"
             return []
         strokeFeatures = self.featurefy(strokes)
-        print strokeFeatures
         return self.hmm.label(strokeFeatures)
 
     def saveFile( self, strokes, labels, originalFile, outFile ):
@@ -515,20 +516,18 @@ class StrokeLabeler:
         return strokes, labels
 
     def confusion(self,trueLabels, classifications):
-        tp, tn, fp, fn = 0, 0, 0, 0
+        result = {'drawing':{'drawing':0,'text':0},'text':{'drawing':0,'text':0}}
         for i in range(len(trueLabels)):
-            if trueLabels[i] == classifications[i]:
-                if classifications[i] == 'drawing':
-                    tp += 1
-                else:
-                    tn += 1
-            else:
-                if classifications[i] == 'drawing':
-                    fp += 1
-                else:
-                    fn += 1
-        return {'drawing':{'drawing':tp,'text':fn},'text':{'drawing':fp,'text':tn}}
+            result[trueLabels[i]][classifications[i]] += 1    
+        print "confusion table: " + str(result)
+        print "accuracy: " + str(float(result['drawing']['drawing']+result['text']['text'])/(result['drawing']['drawing']+result['text']['text']+result['text']['drawing']+result['drawing']['text']))
+        return result
 
+    def validateAll(self):
+        self.classifications = []
+        for oneFilestrokes in self.allStrokes:
+            self.classifications.append(self.labelStrokes(oneFilestrokes))
+        self.confusion(flatten(self.allLabels),flatten(self.classifications))
 
 
 

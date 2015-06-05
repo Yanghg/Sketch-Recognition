@@ -588,8 +588,10 @@ class StrokeLabeler:
         return result
 
     def validateAll(self):
-        self.classifications = self.labelStrokes(flatten(self.allStrokes))
-        self.confusion(flatten(self.allLabels),self.classifications)
+        self.classifications = []
+        for oneFilestrokes in self.allStrokes:
+            self.classifications.append(self.labelStrokes(oneFilestrokes))
+        self.confusion(flatten(self.allLabels),flatten(self.classifications))
 
 
 class Stroke:
