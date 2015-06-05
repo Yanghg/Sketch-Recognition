@@ -323,7 +323,8 @@ class StrokeLabeler:
         # print "Labeling file", strokeFile
         strokes = self.loadStrokeFile( strokeFile )
         labels = self.labelStrokes( strokes )
-        # print "Labeling done, saving file as", outFile
+        print "Labeling done, saving file as", outFile
+        print "output labels: " + str(labels)
         self.saveFile( strokes, labels, strokeFile, outFile )
 
     def labelStrokes( self, strokes ):
