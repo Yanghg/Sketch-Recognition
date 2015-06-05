@@ -13,7 +13,7 @@ DISCRETE = 1
 class HMM:
     ''' Code for a hidden Markov Model '''
 
-    def __init__(self, states, features, contOrDisc, numVals):
+    def __init__(self, states = [], features = [], contOrDisc = {}, numVals = {}):
         ''' Initialize the HMM.
             Input:
                 states: a list of the hidden state possible values
@@ -126,26 +126,35 @@ class HMM:
                     for i in range(len(self.emissions[s][f])):
                         self.emissions[s][f][i] /= float(len(featureVals[s][f])+self.numVals[f])
 
-              
+    # Part 1 Viterbi Testing Example
+    def testViterbi(self):
+        self.states = ['Sunny','Cloudy','Rainy']
+        self.featureNames = ['Evidence']
+        self.featuresCorD={'Evidence':1}
+        self.numVals = {'Evidence':4}
+
+        self.priors = {'Sunny':0.63,'Cloudy':0.17,'Rainy':0.2}
+        self.emissions = {'Sunny':{'Evidence':[0.6,0.2,0.15,0.05]},'Cloudy':{'Evidence':[0.25,0.25,0.25,0.25]},'Rainy':{'Evidence':[0.05,0.10,0.35,0.50]}}
+        self.transitions = {'Sunny':{'Sunny':0.5,'Cloudy':0.375,'Rainy':0.125},'Cloudy':{'Sunny':0.25,'Cloudy':0.125,'Rainy':0.625},'Rainy':{'Sunny':0.25,'Cloudy':0.375,'Rainy':0.375}}
+        print 'result test label sequence is: ' + str(self.label([{'Evidence':0},{'Evidence':2},{'Evidence':3}]))
+
     def label( self, data ):
         ''' Find the most likely labels for the sequence of data
             This is an implementation of the Viterbi algorithm  '''
+        
         # You will implement this function
         #list of 'text' and 'drawing'
         labelList = []
         transitionList = []
         prevPartialProb = {}
         finalState = ''
-        # now have a sequence of length [{'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 1}, {'length': 0}]
-        #self.priors {'text': 0.5272727272727272, 'drawing': 0.4727272727272727}
-        #self.transitions {'text': {'text': 0.8217821782178217, 'drawing': 0.1782178217821782}, 'drawing': {'text': 0.10454908220271349, 'drawing': 0.8954509177972865}}
-        #self.emissions {'text': {'length': [0.6366083445491252, 0.3633916554508748]}, 'drawing': {'length': [0.3166144200626959, 0.6833855799373041]}}
 
         for fIndex in range(len(data)):
             feature = data[fIndex]
             tempPartialProb = {}
             tempPrevState = {} 
             for prior in self.priors:
+                # calculate emission probability
                 emissionProb = math.log(self.getEmissionProb(prior, feature),2)
                 # 1st state calculation 
                 if fIndex == 0:
@@ -168,13 +177,12 @@ class HMM:
 
         labelList.append(finalState)
         #fill labelList from the final state 
-        print 'test'
         for prev in reversed(transitionList):
             labelList.insert(0,prev[finalState])
             finalState = prev[finalState]
-        print "final state partial probability: " + str(prevPartialProb)
-        print "label sequence generated: " + str(labelList)
-        #return a list of labels
+        # print "final state partial probability: " + str(prevPartialProb)
+        # print "label sequence generated: " + str(labelList)
+        # return a list of labels
         return labelList
     
     def getEmissionProb( self, state, features ):
