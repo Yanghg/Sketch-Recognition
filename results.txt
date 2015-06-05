@@ -1,0 +1,63 @@
+Team Members: Xiao Fang, Yang Hong, Guanda Li
+
+Discuss the process you use to build your best classifier. Be sure to address each of the following:
+1. What feature(s) did you try?
+    'length': This is the length of a stroke.
+    'sumOfCurvature': This is the normalized sum of cuvatures of a stroke.
+    'ratioOfWidthHeight': This is the ratio of a boundary rectangle's height to width (or width to height, depends on which one is longer and which one is shorter). 
+                          The value is bewteen 0 and 1, which means the ratio is like this: shorter one / longer one.
+    'toSide': This is the horizontal distance from a stroke to the side of the picture. 
+              If this stroke is closer to the left side, then this value is the distance bewteen the stroke to left side, else it is the distance between the stroke to the right side.
+              To calculate the left and right side position of a picture, we analysis all strokes of a picture first.
+              Then we use the position of left and right side to get this 'toSide' value of each stroke in this picture.
+    'timeDuration': This is the time that spent on picturing this stroke.
+
+2. Were they continuous or discrete?
+    All features used to be continuous but in 'featurefy' function we made all of them discrete with 2 intervals.
+    As a result, in HMM class all features are processed as discrete features.
+
+3. How did you determine thresholds for discrete features?
+    For a specific feature F, we first split the strokes into two subsets with either of type 'drawing' or 'text'. Then for either these two subsets we calculate the average value of feature F -- say we get F1 and F2. Then we equally make 10 intervals between F1 and F2, and use those interval point as the threshold candidates. For each candidate threshold, we use conditional entropy to represent how good/bad this candidate is if the data is splitted by it. Then we choose the candidate with the least conditional entropy. This is pretty much what J48 Decision Tree does to choose the feature as the next tree node.
+
+4. How well did it work?
+    commands to run:
+    --> execfile("StrokeHMMbasic.py") or --> execfile("StrokeHMM.py")
+    --> sl = StrokeLabeler()
+    --> sl.trainHMMDir("trainingFiles/")
+    --> sl.validateAll()
+
+    We use confusion tables to show how well our model works:
+
+    num as for basic        classified as 'drawing'        classified as 'text'        precision
+    true 'drawing'          925                            349                         72.6%
+    true 'text'             346                            395                         53.3%
+
+    num as for best        classified as 'drawing'        classified as 'text'        precision
+    true 'drawing'         981                            293                         77.0%
+    true 'text'            240                            501                         67.6%
+
+5. Part 1 Viterbi Testing Example
+    commands to run:
+    --> execfile("StrokeHMMbasic.py") or --> execfile("StrokeHMM.py")
+    --> hmm = HMM()
+    --> hmm.testViterbi()
+
+    We use the weather example introduced in class to test our HMM model.
+
+    Priors Table    States    priors-prob
+                    'Sunny'   0.63
+                    'Cloudy'  0.17
+                    'Rainy'   0.2
+
+    Emission Table    States    Evidence 1    Evidence 2    Evidence 3    Evidence 4
+                      'Sunny'   0.6           0.2           0.15          0.05
+                      'Cloudy'  0.25          0.25          0.25          0.25
+                      'Rainy'   0.05          0.10          0.35          0.50
+
+    Transition Table    States    'Sunny'    'Cloudy'    'Rainy'
+                        'Sunny'    0.5        0.375       0.125
+                        'Cloudy'   0.25       0.125       0.625
+                        'Rainy'    0.25       0.375       0.375
+
+    Test Sample: [{'Evidence':0},{'Evidence':2},{'Evidence':3}]
+    Output: ['Sunny','Cloudy','Rainy']
